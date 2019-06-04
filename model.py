@@ -1,5 +1,5 @@
 from fastai.vision.models import resnet50
-from anchors import generate_default_anchor_maps
+from .anchors import generate_default_anchor_maps
 from numpy import int64, concatenate, arange
 from torch import *
 import torch

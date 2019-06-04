@@ -6,7 +6,7 @@ from torch import sum
 from torch.nn import CrossEntropyLoss as CRE
 from torch.nn.functional import relu
 
-from loss_functions import *
+from .loss_functions import *
 
 
 def get_pred(out):
