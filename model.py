@@ -44,7 +44,7 @@ class attention_net(nn.Module):
     
   def forward(self, x:Tensor) -> Tensor:
     res_out, rpn_feature, feature = self.resnet(x)
-    x_pad = pad(x, pad=((self.pad_side),) * 4, mode='constant', value=0)
+    x_pad = pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
     bs = x.size(0)
     
     rpn_score = self.proposal_net(rpn_feature.detach())    
