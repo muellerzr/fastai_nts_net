@@ -2,9 +2,9 @@ from torch import nn
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-from fastai.vision.models import resnet50
 import numpy as np
-from .anchors import generate_default_anchor_maps, hard_nms
+import resnet
+from .anchors import generate_default_anchors, hard_nms
 
 
 class ProposalNet(nn.Module):
@@ -32,14 +32,15 @@ class ProposalNet(nn.Module):
 class attention_net(nn.Module):
     def __init__(self, topN=4, classes:int=200, cat_num:int=4):
         super(attention_net, self).__init__()
-        self.pretrained_model = resnet50(pretrained=True)
+        self.cat_num=cat_num
+        self.pretrained_model = resnet.resnet50(pretrained=True)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
         # self.pretrained_model.fc = nn.Linear(512 * 4, 200)
         self.pretrained_model.fc = nn.Linear(512 * 4, classes)
         self.proposal_net = ProposalNet()
         self.topN = topN
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
-        self.concat_net = nn.Linear(2048 * (cat_num + 1), classes)
+        self.concat_net = nn.Linear(2048 * (self.cat_num + 1), classes)
         # self.partcls_net = nn.Linear(512 * 4, 200)
         self.partcls_net = nn.Linear(512 * 4, classes)
         _, edge_anchors, _ = generate_default_anchor_maps()
@@ -69,7 +70,7 @@ class attention_net(nn.Module):
         part_imgs = part_imgs.view(batch * self.topN, 3, 224, 224)
         _, _, part_features = self.pretrained_model(part_imgs.detach())
         part_feature = part_features.view(batch, self.topN, -1)
-        part_feature = part_feature[:, :cat_num, ...].contiguous()
+        part_feature = part_feature[:, :self.cat_num, ...].contiguous()
         part_feature = part_feature.view(batch, -1)
         # concat_logits have the shape: B*200
         concat_out = torch.cat([part_feature, feature], dim=1)
