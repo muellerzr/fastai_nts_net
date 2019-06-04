@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-import .resnet as resnet
+from .resnet import *
 from .anchors import generate_default_anchors, hard_nms
 
 
@@ -33,7 +33,7 @@ class attention_net(nn.Module):
     def __init__(self, topN=4, classes:int=200, cat_num:int=4):
         super(attention_net, self).__init__()
         self.cat_num=cat_num
-        self.pretrained_model = resnet.resnet50(pretrained=True)
+        self.pretrained_model = resnet50(pretrained=True)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
         # self.pretrained_model.fc = nn.Linear(512 * 4, 200)
         self.pretrained_model.fc = nn.Linear(512 * 4, classes)
