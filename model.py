@@ -35,10 +35,9 @@ class attention_net(nn.Module):
     self.resnet.avgpool = nn.AdaptiveAvgPool2d(1)
     self.resnet.fc = nn.Linear(512*4, classes)
     
-    self.ntsnet = nn.Sequential()
-    self.ntsnet.proposal_net = ProposalNet()
-    self.ntsnet.concat_net = nn.Linear(2048 * (cat_num + 1), classes)
-    self.ntsnet.partcls_net = nn.Linear(512*4, classes)
+    self.proposal_net = ProposalNet()
+    self.concat_net = nn.Linear(2048 * (cat_num + 1), classes)
+    self.partcls_net = nn.Linear(512*4, classes)
     _, edge_anchors, _ = generate_default_anchor_maps(input_shape=im_size)
     self.pad_size = 224
     self.edge_anchors = (edge_anchors + 224).astype(int)
@@ -48,7 +47,7 @@ class attention_net(nn.Module):
     x_pad = pad(x, ((self.pad_side),) * 4)
     bs = x.size(0)
     
-    rpn_score = self.ntsnet.proposal_net(rpn_feature.detach())    
+    rpn_score = self.proposal_net(rpn_feature.detach())    
     all_cdds = [
         concatenate((x.reshape(-1, 1), self.edge_anchors.copy(), arange(0, len(x))
                     .reshape(-1,1)), axis=1)
@@ -76,7 +75,7 @@ class attention_net(nn.Module):
     
     concat_out = torch.cat([part_feature, feature], dim=1)
     
-    concat_logits = self.ntsnet.concat_net(concat_out)
+    concat_logits = self.concat_net(concat_out)
     raw_logits = res_out
-    part_logits = self.ntsnet.partcls_net(part_features).view(bs, self.topN, -1)
+    part_logits = self.partcls_net(part_features).view(bs, self.topN, -1)
     return [raw_logits, concat_logits, part_logits, top_n_index, top_n_prob]
