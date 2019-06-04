@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 from .resnet import *
-from .anchors import generate_default_anchors, hard_nms
+from .anchors import generate_default_anchor_maps, hard_nms
 
 
 class ProposalNet(nn.Module):
