@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-import .resnet
+import .resnet as resnet
 from .anchors import generate_default_anchors, hard_nms
 
 
