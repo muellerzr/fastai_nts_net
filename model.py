@@ -31,9 +31,9 @@ class attention_net(nn.Module):
   def __init__(self, classes:int=200, topN:int=4, cat_num:int=4, im_size:tuple=(448,448)):
     super(attention_net, self).__init__()
     self.topN = topN
-    self.resnet = resnet50(pretrained=True)
-    self.resnet.avgpool = nn.AdaptiveAvgPool2d(1)
-    self.resnet.fc = nn.Linear(512*4, classes)
+    self.pretrained_model = resnet50(pretrained=True)
+    self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
+    self.pretrained_model.fc = nn.Linear(512*4, classes)
     
     self.proposal_net = ProposalNet()
     self.concat_net = nn.Linear(2048 * (cat_num + 1), classes)
@@ -43,7 +43,7 @@ class attention_net(nn.Module):
     self.edge_anchors = (edge_anchors + 224).astype(int)
     
   def forward(self, x)
-    res_out, rpn_feature, feature = self.resnet(x)
+    res_out, rpn_feature, feature = self.pretrained_model(x)
     x_pad = pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
     bs = x.size(0)
     
