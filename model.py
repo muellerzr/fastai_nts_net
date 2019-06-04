@@ -42,7 +42,7 @@ class attention_net(nn.Module):
     self.pad_size = 224
     self.edge_anchors = (edge_anchors + 224).astype(int)
     
-  def forward(self, x:Tensor) -> Tensor:
+  def forward(self, x)
     res_out, rpn_feature, feature = self.resnet(x)
     x_pad = pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
     bs = x.size(0)
