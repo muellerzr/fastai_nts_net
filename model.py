@@ -3,6 +3,7 @@ from .anchors import generate_default_anchor_maps
 from numpy import int64, concatenate, arange
 from torch import *
 import torch
+from torch import nn
 from torch.nn.functional import interpolate
 
 class ProposalNet(nn.Module):
