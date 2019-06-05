@@ -47,6 +47,9 @@ def list_loss(logits, targets):
 
     
 def metric(out, label):
-     
-    return metrics.accuracy(get_pred(out), label)
+    _, pred, _, _, _ = out
+    n = label.shape[0]
+    lb = pred.argmax(dim=-1).view(n,-1)
+    targ = label.view(n, -1)
+    return (lb == targ).float().mean()
     
