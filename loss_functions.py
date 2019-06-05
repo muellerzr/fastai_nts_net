@@ -6,6 +6,7 @@ import fastai.metrics as metrics
 from torch import sum
 from torch.nn.functional import cross_entropy as CRE
 from torch.nn.functional import relu
+from torch.autograd import Variable
 from .prediction import *
 
 
