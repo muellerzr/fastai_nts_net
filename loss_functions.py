@@ -4,7 +4,7 @@ from fastai.vision import *
 import fastai.metrics as metrics
 
 from torch import sum
-from torch.nn import CrossEntropyLoss as CRE
+from torch.nn.functional import cross_entropy as CRE
 from torch.nn.functional import relu
 from .prediction import *
 
