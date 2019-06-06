@@ -122,7 +122,7 @@ def get_head(nc:int=200):
     cn = nn.Linear(10240, nc)
     prt = nn.Linear(2048, nc)
     
-    head = nn.Sequential(h1, ProposalNet(), cn, prt)
+    head = nn.Sequential(*list(h1), ProposalNet(), cn, prt)
     return head
 
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, **kwargs:Any)->Learner:
