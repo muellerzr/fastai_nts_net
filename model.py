@@ -99,9 +99,7 @@ def _nts_body_cut(m:nn.Module):
     return nn.Sequential(*list(m.pretrained_model.children())[:8])
 
 def _nts_cut(m:nn.Module)->List[nn.Module]:
-    groups = [[*list(m.pretrained_model.children())[:8]]]
-    groups += [[*list(m.pretrained_model.children())[8:], m.children()[1:]]]
-    return groups
+    return (m[0], m[1])
 
 def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
     if pretrained:
