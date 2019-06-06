@@ -107,7 +107,7 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
         path = data.path
         net = attention_net(topN,200,cat_num)
         gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path=Path(path/'Pretrained-Weights.pth'))
-        net.load_state_dict(torch.load(Path(path/'Pretrained_Weights.pth')))['net_state_dict']                                            
+        net.load_state_dict(torch.load(Path(path/'Pretrained-Weights.pth')))['net_state_dict']                                            
     else:
         net = attention_net(6, 200, 4)
     body = create_body(attention_net, cut=_nts_body_cut)
