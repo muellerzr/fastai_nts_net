@@ -123,7 +123,7 @@ def get_head(nc:int=200):
     head = nn.Sequential(*list(h1), ProposalNet(), cn, prt)
     return head
 
-def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, **kwargs:Any)->Learner:
+def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, init=nn.init.kaiming_normal_, **kwargs:Any)->Learner:
     'Build a convnet style learner for NTS-Net'
     body = get_body(data, topN, cat_num, pretrained)
     head = get_head(data.c)
