@@ -45,7 +45,7 @@ class ProposalNet(nn.Module):
 
 
 class attention_net(nn.Module):
-    def __init__(self, topN=4, classes:int=200, cat_num:int=4):
+    def __init__(self, topN=6, classes:int=200, cat_num:int=4):
         super(attention_net, self).__init__()
         self.cat_num=cat_num
         self.pretrained_model = resnet50(pretrained=True)
@@ -116,6 +116,7 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
 
 def get_head(nc:int=200):
     
+    net = attention_net(6,200,4)
     h1 = [*list(net.pretrained_model.children())[8:]]
     h1[1] = nn.Linear(2048, nc)
     cn = nn.Linear(10240, nc)
