@@ -129,8 +129,8 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
     
     return body
 
-def get_head(nc:int=200, pretrained=True):
-    
+def get_head(data:DataBunch, nc:int=200, pretrained=True):
+    path=data.path
     net = attention_net(6,200,4)
     if pretrained:
         model_dict = net.state_dict()
@@ -156,7 +156,7 @@ def get_head(nc:int=200, pretrained=True):
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, init=nn.init.kaiming_normal_, **kwargs:Any)->Learner:
     'Build a convnet style learner for NTS-Net'
     body = get_body(data, topN, cat_num, pretrained)
-    head = get_head(data.c)
+    head = get_head(data, data.c)
     model = nn.Sequential(body, head)
     learn = Learner(data, model, **kwargs)
     learn.split(_nts_cut)
