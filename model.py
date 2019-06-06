@@ -101,26 +101,56 @@ def _nts_body_cut(m:nn.Module):
 def _nts_cut(m:nn.Module)->List[nn.Module]:
     return (m[0], m[1])
 
+
 def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
     if pretrained:
         path = data.path
         net = attention_net(topN,200,cat_num)
         gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path=Path(path/'Pretrained-Weights.pth'))
-        net.load_state_dict(torch.load(Path(path/'Pretrained-Weights.pth'))['model'])
+        
+        model_dict = net.state_dict()
+        pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
+        
+        for name, param in model_dict.items():
+            if name in pre_dict:
+                input_param = pre_dict[name]
+                if input_param.shape == param.shape:
+                    param.copy_(input_param)
+        
+       
+        net.load_state_dict(net.state_dict())
+        
+        
     else:
         net = attention_net(6, 200, 4)
-    body = create_body(attention_net, cut=_nts_body_cut)
+   
+    body = _nts_body_cut(net)
+    
+    
     return body
 
-def get_head(nc:int=200):
+def get_head(nc:int=200, pretrained=True):
     
     net = attention_net(6,200,4)
+    if pretrained:
+        model_dict = net.state_dict()
+        pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
+
+        for name, param in model_dict.items():
+            if name in pre_dict:
+                input_param = pre_dict[name]
+                if input_param.shape == param.shape:
+                    param.copy_(input_param)
+
+
+        net.load_state_dict(net.state_dict())
+    
     h1 = [*list(net.pretrained_model.children())[8:]]
     h1[1] = nn.Linear(2048, nc)
     cn = nn.Linear(10240, nc)
     prt = nn.Linear(2048, nc)
     
-    head = nn.Sequential(*list(h1), ProposalNet(), cn, prt)
+    head = nn.Sequential(*list(h1), net.proposal_net, cn, prt)
     return head
 
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, init=nn.init.kaiming_normal_, **kwargs:Any)->Learner:
