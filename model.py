@@ -96,7 +96,7 @@ class attention_net(nn.Module):
         return [raw_logits, concat_logits, part_logits, top_n_index, top_n_prob]
 
 def _nts_body_cut(m:nn.Module):
-    return [[*list(m.pretrained_model.children())[:8]]]
+    return nn.Sequential(*list(m.pretrained_model.children())[:8]])
 
 def _nts_cut(m:nn.Module)->List[nn.Module]:
     groups = [[*list(m.pretrained_model.children())[:8]]]
