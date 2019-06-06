@@ -11,9 +11,9 @@ from .prediction import *
 
 
 def total_loss(out, label):
-    bs = learn.data.batch_size
     
     raw_logits, concat_logits, part_logits, _, top_n_prob = out
+    bs = len(raw_logits)
     
     lbl = label.unsqueeze(1).repeat(1, 6).view(-1)
     lgt = part_logits.view(bs * 6, -1)
