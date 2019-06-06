@@ -125,7 +125,7 @@ def get_head(nc:int=200):
 
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, **kwargs:Any)->Learner:
     'Build a convnet style learner for NTS-Net'
-    body = get_body(topN, cat_num, pretrained, data)
+    body = get_body(data, topN, cat_num, pretrained)
     head = get_head(data.c)
     model = nn.Sequential(body, head)
     learn = Learner(data, model, **kwargs)
