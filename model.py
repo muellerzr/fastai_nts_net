@@ -3,6 +3,20 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
+
+from fastai.torch_core import *
+from fastai.basic_train import *
+from fastai.basic_data import *
+from fastai.layers import *
+from fastai.callback import *
+from fastai.layers import *
+from fastai.callbacks.hooks import *
+
+drivedownloader = try_import('googledrivedownloader')
+if not drivedownloader:
+    raise Exception('Error: `googledrivedownloader` is needed. `pip install googledrivedownloader`)
+from google_drive_downloader import GoogleDriveDownloader as gdd
+                    
 from .resnet import *
 from .anchors import generate_default_anchor_maps, hard_nms
 
@@ -79,5 +93,45 @@ class attention_net(nn.Module):
         # part_logits have the shape: B*N*200
         part_logits = self.partcls_net(part_features).view(batch, self.topN, -1)
         return [raw_logits, concat_logits, part_logits, top_n_index, top_n_prob]
+
+def _nts_body_cut(m:nn.Module):
+    return [[*list(m.pretrained_model.children())[:8]]]
+
+def _nts_cut(m:nn.Module)->List[nn.Module]:
+    groups = [[*list(m.pretrained_model.children())[:8]]]
+    groups += [[*list(m.pretrained_model.children())[8:], m.children()[1:]]]
+    return groups
+
+def get_body(topN:int=4, cat_num:int=4, pretrained:bool=True):
+    if pretrained:
+        net = attention_net(topN,200,cat_num)
+        gdd.download_file_from_google_drive(file_id=1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA, dest_path='./Pretrained-Weights.pth')
+        net.load_state_dict(torch.load('Pretrained_Weights.ckpt'))['net_state_dict']                                            
+    else:
+        net = attention_net(6, 200, 4)
+    body = create_body(attention_net, cut=_nts_body_cut)
+    return body
+
+def get_head(nc:int=200)
+    
+    h1 = [*list(net.pretrained_model.children())[8:]]
+    h1[1] = nn.Linear(2048, nc)
+    cn = nn.Linear(10240, nc)
+    prt = nn.Linear(2048, nc)
+    
+    head = nn.Sequential(h1, ProposalNet(), cn, prt)
+    return head
+
+def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, **kwargs=Any)->Learner:
+    'Build a convnet style learner for NTS-Net'
+    body = get_body(topN, cat_num, pretrained)
+    head = get_head(data.c)
+    model = nn.Sequential(body, head)
+    learn = Learner(data, model, **kwargs)
+    learn.split(_nts_cut)
+    if pretrained: learn.freeze()
+    if init: apply_init(model[1], init)
+    return learn
+
 
 
