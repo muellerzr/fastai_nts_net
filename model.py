@@ -96,7 +96,7 @@ class attention_net(nn.Module):
         return [raw_logits, concat_logits, part_logits, top_n_index, top_n_prob]
 
 def _nts_body_cut(m:nn.Module):
-    return nn.Sequential(*list(m.pretrained_model.children())[:8]])
+    return nn.Sequential(*list(m.pretrained_model.children())[:8])
 
 def _nts_cut(m:nn.Module)->List[nn.Module]:
     groups = [[*list(m.pretrained_model.children())[:8]]]
@@ -112,7 +112,7 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
     else:
         net = attention_net(6, 200, 4)
     body = create_body(attention_net, cut=_nts_body_cut)
-    return nn.Sequential(*list(body))
+    return body
 
 def get_head(nc:int=200):
     
