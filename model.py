@@ -111,6 +111,10 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
         model_dict = net.state_dict()
         pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
         
+        
+        #pre_dict = {k: v for k, v in pre_dict.items() if k in model_dict}
+        #model_dict.update(pre_dict) 
+        
         for name, param in model_dict.items():
             if name in pre_dict:
                 input_param = pre_dict[name]
@@ -118,7 +122,7 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
                     param.copy_(input_param)
         
        
-        net.load_state_dict(net.state_dict())
+        net.load_state_dict(model_dict)
         
         
     else:
@@ -142,8 +146,9 @@ def get_head(data:DataBunch, nc:int=200, pretrained=True):
                 if input_param.shape == param.shape:
                     param.copy_(input_param)
 
-
-        net.load_state_dict(net.state_dict())
+        #pre_dict = {k: v for k, v in pre_dict.items() if k in model_dict}
+        #model_dict.update(pre_dict) 
+        net.load_state_dict(model_dict)
     
     h1 = [*list(net.pretrained_model.children())[8:]]
     h1[1] = nn.Linear(2048, nc)
