@@ -12,7 +12,7 @@ from fastai.callback import *
 from fastai.layers import *
 from fastai.callbacks.hooks import *
 
-drivedownloader = try_import('googledrivedownloader')
+drivedownloader = try_import('google_drive_downloader')
 if not drivedownloader:
     raise Exception('Error: `googledrivedownloader` is needed. `pip install googledrivedownloader`')
 from google_drive_downloader import GoogleDriveDownloader as gdd
