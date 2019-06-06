@@ -102,10 +102,11 @@ def _nts_cut(m:nn.Module)->List[nn.Module]:
     groups += [[*list(m.pretrained_model.children())[8:], m.children()[1:]]]
     return groups
 
-def get_body(topN:int=4, cat_num:int=4, pretrained:bool=True):
+def get_body(topN:int=4, cat_num:int=4, pretrained:bool=True, data:DataBunch):
     if pretrained:
+        path = data.path
         net = attention_net(topN,200,cat_num)
-        gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path='./Pretrained-Weights.pth')
+        gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path=Path(path/'Pretrained-Weights.pth')
         net.load_state_dict(torch.load('Pretrained_Weights.ckpt'))['net_state_dict']                                            
     else:
         net = attention_net(6, 200, 4)
@@ -124,7 +125,7 @@ def get_head(nc:int=200):
 
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, **kwargs:Any)->Learner:
     'Build a convnet style learner for NTS-Net'
-    body = get_body(topN, cat_num, pretrained)
+    body = get_body(topN, cat_num, pretrained, data)
     head = get_head(data.c)
     model = nn.Sequential(body, head)
     learn = Learner(data, model, **kwargs)
