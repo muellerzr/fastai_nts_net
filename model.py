@@ -112,7 +112,7 @@ def get_body(topN:int=4, cat_num:int=4, pretrained:bool=True):
     body = create_body(attention_net, cut=_nts_body_cut)
     return body
 
-def get_head(nc:int=200)
+def get_head(nc:int=200):
     
     h1 = [*list(net.pretrained_model.children())[8:]]
     h1[1] = nn.Linear(2048, nc)
