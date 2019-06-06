@@ -11,6 +11,7 @@ from fastai.layers import *
 from fastai.callback import *
 from fastai.layers import *
 from fastai.callbacks.hooks import *
+from fastai.vision.learner import *
 
 drivedownloader = try_import('google_drive_downloader')
 if not drivedownloader:
