@@ -102,7 +102,7 @@ def _nts_cut(m:nn.Module)->List[nn.Module]:
     groups += [[*list(m.pretrained_model.children())[8:], m.children()[1:]]]
     return groups
 
-def get_body(topN:int=4, cat_num:int=4, pretrained:bool=True, data:DataBunch):
+def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
     if pretrained:
         path = data.path
         net = attention_net(topN,200,cat_num)
