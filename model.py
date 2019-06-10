@@ -50,6 +50,7 @@ class NTSNet(nn.Module):
     def __init__(self, data:DataBunch, backbone:nn.Sequential, topN=6,  cat_num:int=4):
         super(NTSNet, self).__init__()
         self.cat_num=cat_num
+        self.classes = data.c
         size = data.train_ds.tfmargs.get('size')
         self.in_size = (size, size)
         self.size = size
@@ -61,7 +62,7 @@ class NTSNet(nn.Module):
         self.backbone_tail.add_module('Flatten', Flatten())
         self.backbone_tail.add_module('Dropout', nn.Dropout(p=0.5))
                  
-        self.backbone_classifier = nn.Linear(512*4, classes)
+        self.backbone_classifier = nn.Linear(512*4, data.c)
         
         
         self.topN = topN
@@ -77,9 +78,9 @@ class NTSNet(nn.Module):
                                
         self.proposal_net = ProposalNet()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
-        self.concat_net = nn.Linear(2048 * (self.cat_num + 1), classes)
+        self.concat_net = nn.Linear(2048 * (self.cat_num + 1), data.c)
         # self.partcls_net = nn.Linear(512 * 4, 200)
-        self.partcls_net = nn.Linear(512 * 4, classes)
+        self.partcls_net = nn.Linear(512 * 4, data.c)
         
 
     def forward(self, x):
