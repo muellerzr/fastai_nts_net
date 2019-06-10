@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-from torch.nn.modules.padding import *
+from torch.nn.modules.padding import ZeroPad2d
 
 from fastai.torch_core import *
 from fastai.basic_train import *
@@ -57,7 +57,7 @@ class NTSNet(nn.Module):
         self.size = size
         self.size_t = size//2
                  
-        self.backbone = backbone
+        self.pretrained_model = backbone
         self.backbone_tail = nn.Sequential()
         self.backbone_tail.add_module('Final Pool', nn.AdaptiveAvgPool2d(1))
         self.backbone_tail.add_module('Flatten', Flatten())
@@ -75,7 +75,7 @@ class NTSNet(nn.Module):
         self.edge_anchors = np.concatenate(
             (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
                  
-        self.pad = ZeroPad2d(padding=224)
+        self.pad = ZeroPad2(padding=self.size_t)
                                
         self.proposal_net = ProposalNet()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
@@ -93,7 +93,7 @@ class NTSNet(nn.Module):
         x_pad = F.pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
         batch = x.size(0)
         # we will reshape rpn to shape: batch * nb_anchor
-        
+        rpn_score = self.proposal_net(rpn_feature.detach())
                  
         all_cdds = [np.concatenate((y.reshape(-1, 1), self.edge_anchors.copy()), axis=1)
                     for y in rpn_score.detach().cpu().numpy()]
@@ -104,13 +104,13 @@ class NTSNet(nn.Module):
         top_n_index = torch.from_numpy(top_n_index).long().to(x.device)
         top_n_prob = torch.gather(rpn_score, dim=1, index=top_n_index)
                  
-        part_imgs = torch.zeros([batch, self.topN, 3, 224,224]).cuda()
+        part_imgs = torch.zeros([batch, self.topN, 3, self.size_t, self.size_t]).cuda()
         for i in range(batch):
             for j in range(self.topN):
                 [y0, x0, y1, x1] = top_n_cdds[i][j, 1:5].astype(np.int)
-                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(224,224), mode='bilinear',
+                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(self.size_t, self.size_t), mode='bilinear',
                                                       align_corners=True)
-        part_imgs = part_imgs.view(batch * self.topN, 3,224,224)
+        part_imgs = part_imgs.view(batch * self.topN, 3, self.size_t, self.size_t)
                  
         part_features = self.backbone_tail(self.backbone(part_imgs.detach()))
                  
@@ -208,6 +208,3 @@ def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True,
     if pretrained: learn.freeze()
     if init: apply_init(model[1], init)
     return learn
-
-
-
