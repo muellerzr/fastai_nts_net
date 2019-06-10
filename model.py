@@ -45,10 +45,10 @@ class ProposalNet(nn.Module):
 
 
 class attention_net(nn.Module):
-    def __init__(self, topN=6, classes:int=200, cat_num:int=4):
+    def __init__(self, topN=6, classes:int=200, cat_num:int=4, pretrained:bool=False):
         super(attention_net, self).__init__()
         self.cat_num=cat_num
-        self.pretrained_model = resnet50(pretrained=True)
+        self.pretrained_model = resnet50(pretrained=pretrained)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
         # self.pretrained_model.fc = nn.Linear(512 * 4, 200)
         self.pretrained_model.fc = nn.Linear(512 * 4, classes)
@@ -102,8 +102,8 @@ def _nts_cut(m:nn.Module)->List[nn.Module]:
     return (m[0], m[1])
 
 
-def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
-    if pretrained:
+def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained_nt:bool=False, pretrained_rs:bool=True):
+    if pretrained_nt:
         path = data.path
         net = attention_net(topN,200,cat_num)
         gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path=Path(path/'Pretrained-Weights.pth'))
@@ -128,6 +128,8 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
         #net.load_state_dict(model_dict)
         
         
+    elif pretrained_rs:
+        net = attention_net(6, 200, 4, pretrained=True)
     else:
         net = attention_net(6, 200, 4)
    
@@ -138,7 +140,7 @@ def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True):
 
 def get_head(data:DataBunch, nc:int=200, pretrained=True):
     path=data.path
-    net = attention_net(6,200,4)
+    net = attention_net(6,200,4, pretrained)
     if pretrained:
         model_dict = net.state_dict()
         pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
@@ -166,7 +168,7 @@ def get_head(data:DataBunch, nc:int=200, pretrained=True):
 def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, init=nn.init.kaiming_normal_, **kwargs:Any)->Learner:
     'Build a convnet style learner for NTS-Net'
     body = get_body(data, topN, cat_num, pretrained)
-    head = get_head(data, data.c)
+    head = get_head(data, data.c, pretrained)
     model = nn.Sequential(body, head)
     learn = Learner(data, model, **kwargs)
     learn.split(_nts_cut)
