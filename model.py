@@ -46,7 +46,7 @@ class ProposalNet(nn.Module):
         return torch.cat((t1, t2, t3), dim=1)
 
 
-class attention_net(nn.Module):
+class NTSNet(nn.Module):
     def __init__(self, backbone, topN=6, data, cat_num:int=4:
         super(attention_net, self).__init__()
         self.cat_num=cat_num
@@ -54,33 +54,54 @@ class attention_net(nn.Module):
         self.in_size = (size, size)
         self.size = size
         self.size_t = size//2
-        self.pretrained_model = resnet50(pretrained=pretrained)
-        self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.pretrained_model.fc = nn.Linear(512 * 4, classes)
-        self.proposal_net = ProposalNet()
+                 
+        self.pretrained_model = backbone
+        self.backbone_tail = nn.Sequential()
+        self.backbone_tail.add_module('Final Pool', nn.AdaptiveAvgPool2d(1))
+        self.backbone_tail.add_module('Flatten', Flatten())
+        self.backbone_tail.add_module('Dropout', nn.Dropout(p=0.5))
+                 
+        self.backbone_classifier = nn.Linear(512*4, classes)
+        
+        
         self.topN = topN
+                 
+        _, edge_anchors, _ = generate_default_anchor_maps(input_size=self.in_size)
+        self.pad_side = size//2
+                 
+        self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)         
+        self.edge_anchors = np.concatenate(
+            (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
+                 
+        self.pad = nn.ZeroPad2(padding=self.size_t)
+                               
+        self.proposal_net = ProposalNet()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
         self.concat_net = nn.Linear(2048 * (self.cat_num + 1), classes)
         # self.partcls_net = nn.Linear(512 * 4, 200)
         self.partcls_net = nn.Linear(512 * 4, classes)
-        _, edge_anchors, _ = generate_default_anchor_maps(input_size=self.in_size)
-        self.pad_side = size/2
-        self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)
+        
 
     def forward(self, x):
-        resnet_out, rpn_feature, feature = self.pretrained_model(x)
+        
+        raw_pre = self.backbone(x)         
+        rpn_score = self.proposal_net(raw_pre)
+                 
+                 
         x_pad = F.pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
         batch = x.size(0)
         # we will reshape rpn to shape: batch * nb_anchor
         rpn_score = self.proposal_net(rpn_feature.detach())
-        all_cdds = [
-            np.concatenate((x.reshape(-1, 1), self.edge_anchors.copy(), np.arange(0, len(x)).reshape(-1, 1)), axis=1)
-            for x in rpn_score.data.cpu().numpy()]
-        top_n_cdds = [hard_nms(x, topn=self.topN, iou_thresh=0.25) for x in all_cdds]
+                 
+        all_cdds = [np.concatenate((y.reshape(-1, 1), self.edge_anchors.copy()), axis=1)
+                    for y in rpn_score.detach().cpu().numpy()]
+                 
+        top_n_cdds = [hard_nms(y, topn=self.topN, iou_thresh=0.25) for y in all_cdds]
         top_n_cdds = np.array(top_n_cdds)
         top_n_index = top_n_cdds[:, :, -1].astype(np.int64) # when running code, here went a error, change np.int to np.int64,parameter index of torch.gather() appoint longtensortype when change num_worker to 4,then it runs on windows or linux correctly
-        top_n_index = torch.from_numpy(top_n_index).cuda()
+        top_n_index = torch.from_numpy(top_n_index).long().to(x.device)
         top_n_prob = torch.gather(rpn_score, dim=1, index=top_n_index)
+                 
         part_imgs = torch.zeros([batch, self.topN, 3, self.size_t, self.size_t]).cuda()
         for i in range(batch):
             for j in range(self.topN):
@@ -88,17 +109,22 @@ class attention_net(nn.Module):
                 part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(self.size_t, self.size_t), mode='bilinear',
                                                       align_corners=True)
         part_imgs = part_imgs.view(batch * self.topN, 3, self.size_t, self.size_t)
-        _, _, part_features = self.pretrained_model(part_imgs.detach())
+                 
+        part_features = self.backbone_tail(self.backbone(part_imgs.detach()))
+                 
         part_feature = part_features.view(batch, self.topN, -1)
-        part_feature = part_feature[:, :self.cat_num, ...].contiguous()
+        part_feature = part_feature[:, :self.cat_num, :].contiguous()
         part_feature = part_feature.view(batch, -1)
         # concat_logits have the shape: B*200
-        concat_out = torch.cat([part_feature, feature], dim=1)
+        raw_features = self.backbone_tail(raw_pre.detach())
+                 
+        concat_out = torch.cat([part_feature, raw_features], dim=1)
         concat_logits = self.concat_net(concat_out)
-        raw_logits = resnet_out
-        # part_logits have the shape: B*N*200
+                 
+        raw_logits = self.backbone_classifier(raw_features)
+       
         part_logits = self.partcls_net(part_features).view(batch, self.topN, -1)
-        return [raw_logits, concat_logits, part_logits, top_n_index, top_n_prob]
+        return concat_logits, raw_logits, part_logits, top_n_prob
 
 def _nts_body_cut(m:nn.Module):
     return nn.Sequential(*list(m.pretrained_model.children())[:8])
