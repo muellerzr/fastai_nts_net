@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-from nn.modules.padding import ZeroPad2d
+from torch.nn.modules.padding import *
 
 from fastai.torch_core import *
 from fastai.basic_train import *
