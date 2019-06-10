@@ -75,7 +75,7 @@ class NTSNet(nn.Module):
         self.edge_anchors = np.concatenate(
             (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
                  
-        self.pad = ZeroPad2d(padding=self.size_t)
+        self.pad = ZeroPad2d(padding=224)
                                
         self.proposal_net = ProposalNet()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
@@ -104,13 +104,13 @@ class NTSNet(nn.Module):
         top_n_index = torch.from_numpy(top_n_index).long().to(x.device)
         top_n_prob = torch.gather(rpn_score, dim=1, index=top_n_index)
                  
-        part_imgs = torch.zeros([batch, self.topN, 3, self.size_t, self.size_t]).cuda()
+        part_imgs = torch.zeros([batch, self.topN, 3, 224,224]).cuda()
         for i in range(batch):
             for j in range(self.topN):
                 [y0, x0, y1, x1] = top_n_cdds[i][j, 1:5].astype(np.int)
-                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(self.size_t, self.size_t), mode='bilinear',
+                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(224,224), mode='bilinear',
                                                       align_corners=True)
-        part_imgs = part_imgs.view(batch * self.topN, 3, self.size_t, self.size_t)
+        part_imgs = part_imgs.view(batch * self.topN, 3,224,224)
                  
         part_features = self.backbone_tail(self.backbone(part_imgs.detach()))
                  
