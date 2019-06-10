@@ -57,7 +57,7 @@ class NTSNet(nn.Module):
         self.size = size
         self.size_t = size//2
                  
-        self.pretrained_model = backbone
+        self.backbone = backbone
         self.backbone_tail = nn.Sequential()
         self.backbone_tail.add_module('Final Pool', nn.AdaptiveAvgPool2d(1))
         self.backbone_tail.add_module('Flatten', Flatten())
