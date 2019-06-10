@@ -67,7 +67,7 @@ class NTSNet(nn.Module):
         
         self.topN = topN
                  
-        _, edge_anchors, _ = generate_default_anchor_maps(input_size=self.in_size)
+        _, edge_anchors, _ = generate_default_anchor_maps(input_shape=self.in_size)
         self.pad_side = size//2
                  
         self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)         
