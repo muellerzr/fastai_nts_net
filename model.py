@@ -75,7 +75,7 @@ class NTSNet(nn.Module):
         self.edge_anchors = np.concatenate(
             (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
                  
-        self.pad = ZeroPad2(padding=self.size_t)
+        self.pad = ZeroPad2d(padding=self.size_t)
                                
         self.proposal_net = ProposalNet()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
