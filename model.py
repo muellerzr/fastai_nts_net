@@ -17,6 +17,8 @@ drivedownloader = try_import('google_drive_downloader')
 if not drivedownloader:
     raise Exception('Error: `googledrivedownloader` is needed. `pip install googledrivedownloader`')
 from google_drive_downloader import GoogleDriveDownloader as gdd
+
+# Most of the following code is from imgclsmob's repository, as their model I was able to get working via split()
                     
 from .resnet import *
 from .anchors import generate_default_anchor_maps, hard_nms
@@ -45,12 +47,15 @@ class ProposalNet(nn.Module):
 
 
 class attention_net(nn.Module):
-    def __init__(self, topN=6, classes:int=200, cat_num:int=4, pretrained:bool=False):
+    def __init__(self, backbone, topN=6, data, cat_num:int=4:
         super(attention_net, self).__init__()
         self.cat_num=cat_num
+        size = data.train_ds.tfmargs.get('size')
+        self.in_size = (size, size)
+        self.size = size
+        self.size_t = size//2
         self.pretrained_model = resnet50(pretrained=pretrained)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
-        # self.pretrained_model.fc = nn.Linear(512 * 4, 200)
         self.pretrained_model.fc = nn.Linear(512 * 4, classes)
         self.proposal_net = ProposalNet()
         self.topN = topN
@@ -58,9 +63,9 @@ class attention_net(nn.Module):
         self.concat_net = nn.Linear(2048 * (self.cat_num + 1), classes)
         # self.partcls_net = nn.Linear(512 * 4, 200)
         self.partcls_net = nn.Linear(512 * 4, classes)
-        _, edge_anchors, _ = generate_default_anchor_maps()
-        self.pad_side = 224
-        self.edge_anchors = (edge_anchors + 224).astype(np.int)
+        _, edge_anchors, _ = generate_default_anchor_maps(input_size=self.in_size)
+        self.pad_side = size/2
+        self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)
 
     def forward(self, x):
         resnet_out, rpn_feature, feature = self.pretrained_model(x)
@@ -76,13 +81,13 @@ class attention_net(nn.Module):
         top_n_index = top_n_cdds[:, :, -1].astype(np.int64) # when running code, here went a error, change np.int to np.int64,parameter index of torch.gather() appoint longtensortype when change num_worker to 4,then it runs on windows or linux correctly
         top_n_index = torch.from_numpy(top_n_index).cuda()
         top_n_prob = torch.gather(rpn_score, dim=1, index=top_n_index)
-        part_imgs = torch.zeros([batch, self.topN, 3, 224, 224]).cuda()
+        part_imgs = torch.zeros([batch, self.topN, 3, self.size_t, self.size_t]).cuda()
         for i in range(batch):
             for j in range(self.topN):
                 [y0, x0, y1, x1] = top_n_cdds[i][j, 1:5].astype(np.int)
-                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(224, 224), mode='bilinear',
+                part_imgs[i:i + 1, j] = F.interpolate(x_pad[i:i + 1, :, y0:y1, x0:x1], size=(self.size_t, self.size_t), mode='bilinear',
                                                       align_corners=True)
-        part_imgs = part_imgs.view(batch * self.topN, 3, 224, 224)
+        part_imgs = part_imgs.view(batch * self.topN, 3, self.size_t, self.size_t)
         _, _, part_features = self.pretrained_model(part_imgs.detach())
         part_feature = part_features.view(batch, self.topN, -1)
         part_feature = part_feature[:, :self.cat_num, ...].contiguous()
