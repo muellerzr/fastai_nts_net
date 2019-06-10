@@ -47,8 +47,8 @@ class ProposalNet(nn.Module):
 
 
 class NTSNet(nn.Module):
-    def __init__(self, backbone, topN=6, data, cat_num:int=4:
-        super(attention_net, self).__init__()
+    def __init__(self, backbone, topN=6, data, cat_num:int=4):
+        super(NTSNet, self).__init__()
         self.cat_num=cat_num
         size = data.train_ds.tfmargs.get('size')
         self.in_size = (size, size)
