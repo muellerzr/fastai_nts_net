@@ -93,7 +93,7 @@ class NTSNet(nn.Module):
         x_pad = F.pad(x, (self.pad_side, self.pad_side, self.pad_side, self.pad_side), mode='constant', value=0)
         batch = x.size(0)
         # we will reshape rpn to shape: batch * nb_anchor
-        rpn_score = self.proposal_net(rpn_feature.detach())
+        #rpn_score = self.proposal_net(rpn_feature.detach())
                  
         all_cdds = [np.concatenate((y.reshape(-1, 1), self.edge_anchors.copy()), axis=1)
                     for y in rpn_score.detach().cpu().numpy()]
