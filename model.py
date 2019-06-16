@@ -21,7 +21,7 @@ from google_drive_downloader import GoogleDriveDownloader as gdd
 
 # Most of the following code is from imgclsmob's repository, as their model I was able to get working via split()
                     
-from .resnet import *
+from .resnet import conv3x3, conv1x1
 from .anchors import generate_default_anchor_maps, hard_nms
 
 
