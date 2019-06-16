@@ -23,10 +23,10 @@ def conv1x1(in_channels, out_channels,stride=1, groups=1, bias=False):
         groups=groups,
         bias=bias)
 
-def conv3x3(in_planes, out_planes, stride=1):
+def conv3x3(in_channels, out_channels, stride=1, bias=False):
     "3x3 convolution with padding"
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
+    return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride,
+                     padding=1, bias=bias)
 
 
 class BasicBlock(nn.Module):
