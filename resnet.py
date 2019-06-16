@@ -13,6 +13,15 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+def conv1x1(in_channels, out_channels,stride=1, groups=1, bias=False):
+
+    return nn.Conv2d(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=1,
+        stride=stride,
+        groups=groups,
+        bias=bias)
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
