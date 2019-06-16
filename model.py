@@ -135,9 +135,9 @@ def _nts_split(m:nn.Sequential) -> List[nn.Module]:
 
 
 
-def get_head(data:DataBunch, nc:int=200, pretrained=True):
+def get_head(data:DataBunch, pretrained=True):
     path=data.path
-    net = attention_net(6,200,4, pretrained)
+    net = NTSNet(data, pretrained)
     if pretrained:
         model_dict = net.state_dict()
         pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
@@ -155,9 +155,6 @@ def get_head(data:DataBunch, nc:int=200, pretrained=True):
         
     
     h1 = [*list(net.pretrained_model.children())[8:]]
-    h1[1] = nn.Linear(2048, nc)
-    cn = nn.Linear(10240, nc)
-    prt = nn.Linear(2048, nc)
-    
-    head = nn.Sequential(*list(h1), net.proposal_net, cn, prt)
+        
+    head = nn.Sequential(*list(h1))
     return head
