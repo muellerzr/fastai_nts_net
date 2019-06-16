@@ -154,7 +154,7 @@ def get_head(data:DataBunch, pretrained=False):
         net.load_state_dict(model_dict)
         
     
-    h1 = [*list(net.pretrained_model.children())[8:]]
+    h1 = [*list(net.children())[1:]]
         
     head = nn.Sequential(*list(h1))
     return head
