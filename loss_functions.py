@@ -13,7 +13,7 @@ from .prediction import *
 def total_loss(out, label):
     
     
-    raw_logits, concat_logits, part_logits, _, top_n_prob = out
+    concat_logits, raw_logits, part_logits, top_n_prob = out
     
     bs = len(raw_logits)
     
@@ -49,7 +49,7 @@ def list_loss(logits, targets):
 
     
 def metric(out, label):
-    _, pred, _, _, _ = out
+    pred, _, _, _ = out
     n = label.shape[0]
     lb = pred.argmax(dim=-1).view(n,-1)
     targ = label.view(n, -1)
