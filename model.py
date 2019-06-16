@@ -25,27 +25,70 @@ from .resnet import *
 from .anchors import generate_default_anchor_maps, hard_nms
 
 
-class ProposalNet(nn.Module):
-    def __init__(self):
-        super(ProposalNet, self).__init__()
-        self.down1 = nn.Conv2d(2048, 128, 3, 1, 1)
-        self.down2 = nn.Conv2d(128, 128, 3, 2, 1)
-        self.down3 = nn.Conv2d(128, 128, 3, 2, 1)
-        self.ReLU = nn.ReLU()
-        self.tidy1 = nn.Conv2d(128, 6, 1, 1, 0)
-        self.tidy2 = nn.Conv2d(128, 6, 1, 1, 0)
-        self.tidy3 = nn.Conv2d(128, 9, 1, 1, 0)
+
+class NavigatorBranch(nn.Module):
+    """
+    Navigator branch block for Navigator unit.
+    Parameters:
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+    stride : int or tuple/list of 2 int
+        Strides of the convolution.
+    """
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 stride):
+        super(NavigatorBranch, self).__init__()
+        mid_channels = 128
+
+        self.down_conv = conv3x3(
+            in_channels=in_channels,
+            out_channels=mid_channels,
+            stride=stride,
+            bias=True)
+        self.activ = nn.ReLU(inplace=False)
+        self.tidy_conv = conv1x1(
+            in_channels=mid_channels,
+            out_channels=out_channels,
+            bias=True)
+        self.flatten = Flatten()
 
     def forward(self, x):
-        batch_size = x.size(0)
-        d1 = self.ReLU(self.down1(x))
-        d2 = self.ReLU(self.down2(d1))
-        d3 = self.ReLU(self.down3(d2))
-        t1 = self.tidy1(d1).view(batch_size, -1)
-        t2 = self.tidy2(d2).view(batch_size, -1)
-        t3 = self.tidy3(d3).view(batch_size, -1)
-        return torch.cat((t1, t2, t3), dim=1)
+        y = self.down_conv(x)
+        y = self.activ(y)
+        z = self.tidy_conv(y)
+        z = self.flatten(z)
+        return z, y
 
+
+class NavigatorUnit(nn.Module):
+    """
+    Navigator init.
+    """
+    def __init__(self):
+        super(NavigatorUnit, self).__init__()
+        self.branch1 = NavigatorBranch(
+            in_channels=2048,
+            out_channels=6,
+            stride=1)
+        self.branch2 = NavigatorBranch(
+            in_channels=128,
+            out_channels=6,
+            stride=2)
+        self.branch3 = NavigatorBranch(
+            in_channels=128,
+            out_channels=9,
+            stride=2)
+
+    def forward(self, x):
+        t1, x = self.branch1(x)
+        t2, x = self.branch2(x)
+        t3, _ = self.branch3(x)
+        return torch.cat((t1, t2, t3), dim=1)
 
 class NTSNet(nn.Module):
     def __init__(self, data:DataBunch, backbone:nn.Sequential, topN=6,  cat_num:int=4):
@@ -56,6 +99,14 @@ class NTSNet(nn.Module):
         self.in_size = (size, size)
         self.size = size
         self.size_t = size//2
+        self.topN = topN
+                 
+        
+        self.pad_side = size//2
+        _, edge_anchors, _ = generate_default_anchor_maps(input_shape=self.in_size)
+        self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)         
+        self.edge_anchors = np.concatenate(
+            (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
                  
         self.backbone = backbone
         self.backbone_tail = nn.Sequential()
@@ -66,18 +117,13 @@ class NTSNet(nn.Module):
         self.backbone_classifier = nn.Linear(512*4, data.c)
         
         
-        self.topN = topN
+       
                  
-        _, edge_anchors, _ = generate_default_anchor_maps(input_shape=self.in_size)
-        self.pad_side = size//2
-                 
-        self.edge_anchors = (edge_anchors + self.pad_side).astype(np.int)         
-        self.edge_anchors = np.concatenate(
-            (self.edge_anchors.copy(), np.arange(0, len(self.edge_anchors)).reshape(-1,1)), axis=1)
+        
                  
         self.pad = ZeroPad2d(padding=self.size_t)
                                
-        self.proposal_net = ProposalNet()
+        self.proposal_net = NavigatorUnit()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
         self.concat_net = nn.Linear(2048 * (self.cat_num + 1), data.c)
         # self.partcls_net = nn.Linear(512 * 4, 200)
