@@ -12,7 +12,7 @@ from .prediction import *
 
 def total_loss(out, label):
     
-    
+    n = LabelSmoothingCrossEntropy()
     concat_logits, raw_logits, part_logits, top_n_prob = out
     
     bs = len(raw_logits)
@@ -21,10 +21,10 @@ def total_loss(out, label):
     lgt = part_logits.view(bs * 6, -1)
     
     part_loss = list_loss(lgt, lbl).view(bs,6)
-    raw_loss = CRE(raw_logits, label)
-    concat_loss = CRE(concat_logits, label)
+    raw_loss = n.forward(raw_logits, label)
+    concat_loss = n.forward(concat_logits, label)
     rank_loss = ranking_loss(top_n_prob, part_loss, 6)
-    partcls_loss = CRE(lgt, lbl)
+    partcls_loss = n.forward(lgt, lbl)
     
     total_loss = rank_loss + raw_loss + concat_loss + partcls_loss
     return total_loss.squeeze(0)
