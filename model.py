@@ -128,48 +128,12 @@ class NTSNet(nn.Module):
         part_logits = self.partcls_net(part_features).view(batch, self.topN, -1)
         return concat_logits, raw_logits, part_logits, top_n_prob
 
-def _nts_body_cut(m:nn.Module):
-    return nn.Sequential(*list(m.pretrained_model.children())[:8])
+def _nts_split(m:nn.Sequential) -> List[nn.Module]:
+    groups = [[*list(m.children())[:1]]]
+    groups += [[*list(m.children())[1:]]]
+    return groups
 
-def _nts_cut(m:nn.Module)->List[nn.Module]:
-    return (m[0], m[1])
 
-
-def get_body(data:DataBunch, topN:int=4, cat_num:int=4, pretrained_nt:bool=False, pretrained_rs:bool=True):
-    if pretrained_nt:
-        path = data.path
-        net = attention_net(topN,200,cat_num)
-        gdd.download_file_from_google_drive(file_id='1Nbc9HMt4YPd2Wjri6BCCiTygUhTaPdxA', dest_path=Path(path/'Pretrained-Weights.pth'))
-        
-        model_dict = net.state_dict()
-        pre_dict = torch.load(Path(path/'Pretrained-Weights.pth'))['model']
-        
-        
-        pre_dict = {k: v for k, v in pre_dict.items() if k in model_dict}
-        model_dict.update(pre_dict) 
-        
-        net.load_state_dict(model_dict)
-        
-        
-        #for name, param in model_dict.items():
-        #    if name in pre_dict:
-        #        input_param = pre_dict[name]
-        #        if input_param.shape == param.shape:
-        #            param.copy_(input_param)
-        
-       
-        #net.load_state_dict(model_dict)
-        
-        
-    elif pretrained_rs:
-        net = attention_net(6, 200, 4, pretrained=True)
-    else:
-        net = attention_net(6, 200, 4)
-   
-    body = _nts_body_cut(net)
-    
-    
-    return body
 
 def get_head(data:DataBunch, nc:int=200, pretrained=True):
     path=data.path
@@ -197,14 +161,3 @@ def get_head(data:DataBunch, nc:int=200, pretrained=True):
     
     head = nn.Sequential(*list(h1), net.proposal_net, cn, prt)
     return head
-
-def nts_learner(data:DataBunch, topN:int=4, cat_num:int=4, pretrained:bool=True, init=nn.init.kaiming_normal_, **kwargs:Any)->Learner:
-    'Build a convnet style learner for NTS-Net'
-    body = get_body(data, topN, cat_num, pretrained)
-    head = get_head(data, data.c, pretrained)
-    model = nn.Sequential(body, head)
-    learn = Learner(data, model, **kwargs)
-    learn.split(_nts_cut)
-    if pretrained: learn.freeze()
-    if init: apply_init(model[1], init)
-    return learn
