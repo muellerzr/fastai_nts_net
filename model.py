@@ -135,7 +135,7 @@ def _nts_split(m:nn.Sequential) -> List[nn.Module]:
 
 
 
-def get_head(data:DataBunch, pretrained=True):
+def get_head(data:DataBunch, pretrained=False):
     path=data.path
     net = NTSNet(data, pretrained)
     if pretrained:
