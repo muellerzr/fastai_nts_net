@@ -110,24 +110,28 @@ class NTSNet(nn.Module):
                  
         self.backbone = backbone
         self.backbone_tail = nn.Sequential()
-        self.backbone_tail.add_module('Final Pool', nn.AdaptiveAvgPool2d(1))
+        self.backbone_tail.add_module('Final Pool', AdaptiveConcatPool2d())
         self.backbone_tail.add_module('Flatten', Flatten())
-        self.backbone_tail.add_module('Dropout', nn.Dropout(p=0.5))
                  
-        self.backbone_classifier = nn.Linear(512*4, data.c)
-        
-        
-       
-                 
-        
-                 
+        num_ftrs = 2 * 2048
+        hidden_layer = 512
+        self.backbone_classifier = torch.nn.Sequential(
+          torch.nn.BatchNorm1d(num_ftrs),
+          torch.nn.Dropout(0.25),
+          torch.nn.Linear(num_ftrs, hidden_layer),
+          torch.nn.ReLU(inplace=True),
+          torch.nn.BatchNorm1d(hidden_layer),
+          torch.nn.Dropout(0.5),
+          torch.nn.Linear(hidden_layer, data.c),
+        )
+
         self.pad = ZeroPad2d(padding=self.size_t)
                                
         self.proposal_net = NavigatorUnit()
         # self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
-        self.concat_net = nn.Linear(2048 * (self.cat_num + 1), data.c)
+        self.concat_net = nn.Linear(2 * 2048 * (self.cat_num + 1), data.c)
         # self.partcls_net = nn.Linear(512 * 4, 200)
-        self.partcls_net = nn.Linear(512 * 4, data.c)
+        self.partcls_net = nn.Linear(2 * 512 * 4, data.c)
         
 
     def forward(self, x):
